@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Terminal | Minerva Rodríguez-Cabrejas</title>
+    <style>
+        :root {
+            --bg-color: #0d0d0d;
+            --text-color: #00ff41;
+            --window-bg: #1a1a1a;
+            --font-mono: 'Courier New', Courier, monospace;
+            --comment-color: #7a7a7a;
+            --error-color: #ff5f56;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: var(--font-mono);
+            display: flex;
+            justify-content: center;
+            padding: 20px;
+            margin: 0;
+            font-size: 14px;
+        }
+
+        .terminal-window {
+            width: 100%;
+            max-width: 950px;
+            background-color: var(--window-bg);
+            border-radius: 10px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            border: 1px solid #333;
+            display: flex;
+            flex-direction: column;
+            height: 90vh;
+        }
+
+        .terminal-header {
+            background-color: #333;
+            padding: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .dot { width: 12px; height: 12px; border-radius: 50%; }
+        .red { background-color: #ff5f56; }
+        .yellow { background-color: #ffbd2e; }
+        .green { background-color: #27c93f; }
+
+        .terminal-title { margin-left: auto; margin-right: auto; color: #999; font-size: 12px; }
+
+        #terminal-content {
+            padding: 25px;
+            line-height: 1.6;
+            overflow-y: auto;
+            flex-grow: 1;
+        }
+
+        .line { margin-bottom: 8px; }
+        .prompt { color: #888; }
+        .command-text { color: #fff; font-weight: bold; }
+        .comment { color: var(--comment-color); }
+        .highlight { color: #fff; font-weight: bold; }
+        .warning { color: var(--error-color); font-weight: bold; }
+
+        .input-line {
+            display: flex;
+            align-items: center;
+            padding: 15px 25px;
+            background-color: #111;
+            border-top: 1px solid #222;
+        }
+
+        #user-input {
+            background: transparent;
+            border: none;
+            color: var(--text-color);
+            font-family: var(--font-mono);
+            font-size: 14px;
+            outline: none;
+            flex-grow: 1;
+            margin-left: 10px;
+        }
+
+        .project-card {
+            border: 1px solid #333;
+            padding: 15px;
+            margin: 10px 0;
+            background: #151515;
+        }
+
+        .video-container {
+            position: relative;
+            padding-bottom: 56.25%;
+            height: 0;
+            overflow: hidden;
+            max-width: 100%;
+            margin-top: 15px;
+        }
+        .video-container iframe {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            border: 1px solid #444;
+        }
+
+        .project-card img { width: 100%; max-width: 700px; margin-top: 10px; border: 1px solid #444; }
+        #terminal-content::-webkit-scrollbar { width: 6px; }
+        #terminal-content::-webkit-scrollbar-thumb { background: #333; }
+    </style>
+</head>
+<body>
+
+    <div class="terminal-window">
+        <div class="terminal-header">
+            <div class="dot red"></div>
+            <div class="dot yellow"></div>
+            <div class="dot green"></div>
+            <div class="terminal-title">bash — minerva_root — 80x24</div>
+        </div>
+
+        <div id="terminal-content"></div>
+
+        <div class="input-line" id="input-container">
+            <span class="prompt" id="current-prompt">root@artes-plasticas:~$</span>
+            <input type="password" id="user-input" autofocus autocomplete="off" spellcheck="false" placeholder="Introduzca contraseña...">
+        </div>
+    </div>
+
+    <script>
+        const content = document.getElementById('terminal-content');
+        const inputContainer = document.getElementById('input-container');
+        const userInput = document.getElementById('user-input');
+        const currentPrompt = document.getElementById('current-prompt');
+
+        let authenticated = false;
+
+        const proyectos = {
+            'itinerario_ia': {
+                t: 'ITINERARIO IA (2026)',
+                d: 'Presentación del Itinerario Formativo “IA en Educación” en la plataforma Aularagon del Centro Aragonés de Tecnologías para la Educación.',
+                video: '<div class="video-container"><iframe src="https://www.youtube.com/embed/DFdh3Wn-o1g?si=1Iw669JcLL8_uRWc" frameborder="0" allowfullscreen></iframe></div>'
+            },
+            'planeta_blinded': { t: 'PLANETA BLINDED (2021)', d: 'Imagen Digital. Ceguera visual en la era del exceso informativo.', img: 'https://via.placeholder.com/700x350/222/00ff41?text=PLANETA+BLINDED' }
+        };
+
+        const statement = `<span class="comment">// ARTIST STATEMENT</span><br><span class="comment">Mi intención con este máster es poder volver a conectar con la creación artística y desarrollar obra propia entrenando una IA propia...</span>`;
+
+        // SECUENCIA DE LOGIN (Estilo taller_ia)
+        const loginSequence = [
+            { t: 'p', c: '<span class="comment">// Autora: Minerva Rodríguez-Cabrejas</span>' },
+            { t: 'p', c: '<span class="comment">✉ rodriguezcabrejasminerva@gmail.com</span>' },
+            { t: 'p', c: '<br><span class="warning">>> [AVISO] SOLO ACCESO RESTRINGIDO</span>' },
+            { t: 'p', c: '<span class="warning">>> SE REQUIERE AUTENTICACIÓN PARA CONTINUAR</span>' }
+        ];
+
+        async function startLogin() {
+            for (let line of loginSequence) {
+                await addLine(line.c, line.t, 20);
+                await delay(200);
+            }
+        }
+
+        async function grantAccess() {
+            authenticated = true;
+            userInput.type = "text"; // Cambiamos de password a texto normal
+            userInput.placeholder = "";
+            currentPrompt.innerText = "user@minerva:~$";
+
+            await addLine('<br><span class="highlight">ACCESO CONCEDIDO</span>', 'p', 10);
+            await addLine('¡Bienvenid@, Artista!', 'p', 20);
+            await addLine('Accediendo a archivos clasificados...', 'p', 20);
+            await addLine('➜ Sesión iniciada: Portafolio Minerva Rodríguez-Cabrejas', 'p', 20);
+            await addLine('<br>Escribe <span class="highlight">"proyectos"</span>, <span class="highlight">"bio"</span> o <span class="highlight">"contacto"</span> para navegar.', 'p', 20);
+        }
+
+        async function addLine(text, tag = 'p', speed = 20) {
+            const el = document.createElement(tag);
+            el.className = 'line';
+            content.appendChild(el);
+            return new Promise(resolve => {
+                let i = 0;
+                function type() {
+                    if (i < text.length) {
+                        if (text.charAt(i) === '<') {
+                            let end = text.indexOf('>', i);
+                            el.innerHTML += text.substring(i, end + 1);
+                            i = end + 1;
+                        } else {
+                            el.innerHTML += text.charAt(i);
+                            i++;
+                        }
+                        setTimeout(type, speed);
+                    } else {
+                        content.scrollTop = content.scrollHeight;
+                        resolve();
+                    }
+                }
+                type();
+            });
+        }
+
+        function delay(ms) { return new Promise(res => setTimeout(res, ms)); }
+
+        userInput.addEventListener('keydown', async (e) => {
+            if (e.key === 'Enter') {
+                const val = userInput.value.toLowerCase().trim();
+                userInput.value = '';
+
+                if (!authenticated) {
+                    // En la web original cualquier contraseña sirve, o puedes poner una específica
+                    await grantAccess();
+                    return;
+                }
+
+                const userLine = document.createElement('p');
+                userLine.innerHTML = `<span class="prompt">user@minerva:~$</span> <span class="command-text">${val}</span>`;
+                content.appendChild(userLine);
+
+                switch(val) {
+                    case 'proyectos':
+                        await addLine('Archivos encontrados: <br>' + Object.keys(proyectos).map(k => `> <span class="highlight">${k}</span>`).join('<br>'));
+                        break;
+                    case 'bio':
+                    case 'sobre-mi':
+                        await addLine(statement);
+                        break;
+                    case 'contacto':
+                        await addLine('Email: <span class="comment">rodriguezcabrejasminerva@gmail.com</span><br>LinkedIn: /in/minerva-rodríguez-cabrejas');
+                        break;
+                    case 'clear':
+                        content.innerHTML = '';
+                        await grantAccess();
+                        break;
+                    default:
+                        if (proyectos[val]) {
+                            const p = proyectos[val];
+                            let mediaHTML = p.img ? `<img src="${p.img}">` : (p.video ? p.video : '');
+                            await addLine(`<div class="project-card"><h2 style="color:#fff">${p.t}</h2><p class="comment">${p.d}</p>${mediaHTML}</div>`);
+                        } else {
+                            await addLine(`Error: Comando "${val}" no reconocido.`, 'p', 10);
+                        }
+                }
+                content.scrollTop = content.scrollHeight;
+            }
+        });
+
+        document.addEventListener('click', () => userInput.focus());
+        window.onload = startLogin;
+    </script>
+</body>
+</html>
