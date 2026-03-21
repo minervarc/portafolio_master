@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Terminal | Minerva Rodríguez-Cabrejas</title>
+    <style>
+        :root {
+            --bg-color: #0d0d0d;
+            --text-color: #00ff41;
+            --window-bg: #1a1a1a;
+            --font-mono: 'Courier New', Courier, monospace;
+            --comment-color: #888;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: var(--font-mono);
+            display: flex;
+            justify-content: center;
+            padding: 20px;
+            margin: 0;
+            font-size: 14px;
+        }
+
+        .terminal-window {
+            width: 100%;
+            max-width: 950px;
+            background-color: var(--window-bg);
+            border-radius: 10px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            border: 1px solid #333;
+            display: flex;
+            flex-direction: column;
+            height: 90vh;
+        }
+
+        .terminal-header {
+            background-color: #333;
+            padding: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .dot { width: 12px; height: 12px; border-radius: 50%; }
+        .red { background-color: #ff5f56; }
+        .yellow { background-color: #ffbd2e; }
+        .green { background-color: #27c93f; }
+
+        .terminal-title { margin-left: auto; margin-right: auto; color: #999; font-size: 12px; }
+
+        .system-ask {
+            color: #569cd6 !important;
+            font-weight: bold;
+            display: block;
+            margin-top: 10px;
+        }
+
+        #terminal-content {
+            padding: 25px;
+            line-height: 1.6;
+            overflow-y: auto;
+            flex-grow: 1;
+        }
+
+        .line { margin-bottom: 8px; }
+        .prompt { color: #888; }
+        .command-text { color: #fff; font-weight: bold; }
+        .comment { color: var(--comment-color); display: inline; }
+        .highlight { color: #fff; font-weight: bold; text-decoration: none; }
+
+        .input-line {
+            display: flex;
+            align-items: center;
+            padding: 15px 25px;
+            background-color: #111;
+            border-top: 1px solid #222;
+        }
+
+        #user-input {
+            background: transparent;
+            border: none;
+            color: var(--text-color);
+            font-family: var(--font-mono);
+            font-size: 14px;
+            outline: none;
+            flex-grow: 1;
+            margin-left: 10px;
+        }
+
+        .video-responsive {
+            position: relative;
+            padding-bottom: 56.25%;
+            height: 0;
+            overflow: hidden;
+            max-width: 100%;
+            margin-top: 15px;
+        }
+        .video-responsive iframe {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            border: 1px solid #444;
+        }
+
+        .project-card img {
+            max-width: 100%;
+            height: auto;
+            border: 1px solid #444;
+            margin-top: 15px;
+            display: block;
+        }
+
+        a.highlight {
+            color: #fff;
+            text-decoration: underline;
+            cursor: pointer;
+        }
+
+        .progress-bar-container {
+            width: 100%;
+            max-width: 300px;
+            border: 1px solid var(--text-color);
+            height: 12px;
+            margin: 10px 0;
+        }
+        .progress-bar-fill {
+            background-color: var(--text-color);
+            height: 100%;
+            width: 0%;
+        }
+        #terminal-content::-webkit-scrollbar { width: 6px; }
+        #terminal-content::-webkit-scrollbar-thumb { background: #333; }
+        /* El cursor que aparece mientras se escribe */
+        .cursor {
+            display: inline-block;
+            width: 8px;
+            height: 15px;
+            background-color: var(--text-color);
+            margin-left: 2px;
+            animation: blink 0.8s infinite;
+            vertical-align: middle;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="terminal-window">
+        <div class="terminal-header">
+            <div class="dot red"></div>
+            <div class="dot yellow"></div>
+            <div class="dot green"></div>
+            <div class="terminal-title">bash — minerva_portfolio</div>
+        </div>
+        <div id="terminal-content"></div>
+        <div class="input-line" id="input-container" style="display: none;">
+            <span class="prompt">user@minerva:~$</span>
+            <input type="text" id="user-input" autofocus autocomplete="off" spellcheck="false">
+        </div>
+    </div>
+
+    <script>
+            const content = document.getElementById('terminal-content');
+            const inputContainer = document.getElementById('input-container');
+            const userInput = document.getElementById('user-input');
+
+            const proyectos = {
+                            'itinerario_ia': {
+                                t: 'ITINERARIO IA (2026)',
+                                d: 'Presentación del Itinerario Formativo “IA en Educación” en la plataforma Aularagon del Centro Aragonés de Tecnologías para la Educación. En este vídeo se explican los objetivos del itinerario, su estructura y el enfoque de aplicación en el aula, con una mirada práctica y accesible para el profesorado en donde he creado el curso de Aplicación de la IA en el aula de Artes Plásticas y el vídeo explicativo junto con María de Mingo Carranza',
+                                video: '<div class="video-responsive"><iframe src="https://www.youtube.com/embed/DFdh3Wn-o1g?si=1Iw669JcLL8_uRWc" title="YouTube video player" frameborder="0" allowfullscreen></iframe></div>'
+                            },
+
+                            'planeta_blinded': {
+                              t: 'PLANETA BLINDED (2021)',
+                              d: 'Intervención artística en red.La obra nace como respuesta al auge del negacionismo climático, la posverdad y la desinformación en las redes sociales. Busca visibilizar las "mentiras" de estas posturas científicamente cuestionables en el mismo espacio donde más se propagan: Internet. <br> Zona Blinded: Un archivo digital de personajes públicos (como Donald Trump, Jair Bolsonaro o Vladimir Putin) que han alentado el negacionismo. Como recurso estético y simbólico, sus imágenes aparecen con los ojos pintados de negro para representar su ceguera ante la realidad empírica. <br> Se creó un filtro específico para Instagram y Facebook con el fin de alentar a los usuarios a denunciar acciones o figuras negacionistas.<br> Memoria proyecto --> Puedes leer el documento completo haciendo <a href="https://github.com/minervarc/portafolio_master/blob/main/Medialab-Memoria.pdf" target="_blank" class="highlight">clica aquí</a>',
+                              video: '<div class="video-responsive"><iframe src="https://www.youtube.com/embed/Tc2AQtj_O_0?si=FoJCJAlQQQS-RmM5" title="YouTube video player" frameborder="0" allowfullscreen></iframe></div>'
+                             },
+
+                            'diario': {
+                              t: 'DIARIO DE APRENDIZAJE (2021)',
+                              d: 'Diario online que documenta el paso de la autora por la materia Educomunicación digital y Narrativa digital del Máster en Comunicación y Educación en la Red, recopilando bibliografía, webgrafía, aplicaciones y aprendizajes adquiridos.<br> Se concibe como un espacio transformable e híbrido, alejándose de la estructura lineal de un blog convencional para ofrecer una experiencia lúdica y con múltiples perspectivas. <br> Diario --> Puedes entrar en el diario completo haciendo <a href="https://www.artsteps.com/embed/604b4d5fa1babc064ab2107b/560/315" target="_blank" class="highlight">clica aquí</a>.',
+                              img: 'https://github.com/minervarc/portafolio_master/blob/main/Captura%20de%20pantalla%202026-03-21%20a%20las%2013.40.24.png?raw=true'
+                            },
+
+                            'iconoscotopias': {
+                            t: 'ICONOSCOTOPIAS (2013)',
+                            // Cambio a comillas invertidas ` para permitir saltos de línea
+                            d: `TFG. Iconoscotopías, espacios de relación entre mi tele y yo es proyecto de "arqueología contemporánea" que busca analizar la relación de las personas con el mundo audiovisual. El estudio se centra en cómo el consumo de televisión e imágenes en movimiento influye en la constitución de la identidad propia y hasta qué punto forma parte de la memoria individual y colectiva. <br> Memoria proyecto --> Puedes leer el documento completo haciendo <a href="https://zaguan.unizar.es/record/12354?ln=es" target="_blank" class="highlight">clica aquí</a>.`,
+                            img: 'https://github.com/minervarc/portafolio_master/blob/main/Captura%20de%20pantalla%202026-03-21%20a%20las%2013.19.36.png?raw=true',
+                            video: '<div class="video-responsive"><iframe src="https://www.youtube.com/embed/cuGbzkdUqTs?si=mdlFi8ZwxvT3CZYt" title="YouTube video player" frameborder="0" allowfullscreen></iframe></div>'
+                        },
+
+                            'cartografias': {
+                              t: 'CARTOGRAFÍAS AUDIOVISUALES (2013)',
+                            // Cambio a comillas invertidas ` aquí también
+                            d: `Audiovisuales + collage. El proyecto analiza cómo se percibe y visualiza la ciudad de Teruel a través de los medios de comunicación de masas, específicamente en la cadena autonómica Aragón TV. La intención es reflexionar sobre cómo estos medios influyen en la creación de la identidad y el conocimiento de un territorio. <br> Memoria proyecto --> Puedes leer el documento completo haciendo <a href="https://github.com/minervarc/portafolio_master/blob/main/Cartografi%CC%81as_memoria_Minerva_Rodri%CC%81guez.pdf" target="_blank" class="highlight">clica aquí</a>.`,
+                            video: '<div class="video-responsive"><iframe src="https://www.youtube.com/embed/Ob7wWN-2q1Q?si=2JcnRxoPSU9MDXxq" title="YouTube video player" frameborder="0" allowfullscreen></iframe></div>'
+                        },
+
+                            'segunda_casa': {
+                                t: 'MI SEGUNDA CASA (2013)',
+                                d: 'Vídeo-instalación. "Y entonces, la sala se convirtió en mi segunda casa" fue una obra premiada por la Cátedra Artes y Enfermedades. Construí una pieza inspirada en el Byōbu (biombo), elemento que separa los espacios en un hospital, otorgando privacidad e insinuando lo que no podemos ver.',
+                                img: 'https://github.com/minervarc/portafolio_master/blob/main/MinervaRodriguez2casa.jpg?raw=true',
+                                video: '<div class="video-responsive"><iframe src="https://www.youtube.com/embed/Sasm1DN8G2U" title="YouTube video player" frameborder="0" allowfullscreen></iframe></div>'
+                            },
+                            'callate': {
+                                t: 'CÁLLATE (2011)',
+                                d: 'Videoarte. es una invitación al espectador a desprenderse del ruido cotidiano y sumergirse en la observación consciente. A través de un lenguaje visual pausado, la obra nos propone detener el tiempo para reencontrarnos con lo que nos rodea. En un mundo saturado de estímulos, el silencio se convierte aquí en una herramienta de conexión. Al "callar" las distracciones externas, permitimos que el entorno —ya sea el movimiento fluido del agua, el susurro del viento entre los árboles o el juego de luces y sombras— actúe como un espejo de nuestra propia identidad. Esta pieza no solo invita a mirar, sino a habitar el contexto. Es un ejercicio de presencia pura que nos enseña que, en el reposo y la escucha de lo circundante, es donde realmente podemos empezar a definir quiénes somos.',
+                                video: '<div class="video-responsive"><iframe src="https://www.youtube.com/embed/EfBL8Ut8yAM?si=3GCvWYPLu5NjVLIH" title="YouTube video player" frameborder="0" allowfullscreen></iframe></div>'
+                            }
+
+                        }; // <-- Aquí se cierran correctamente los proyectos
+
+            const futuro = `
+                <span class="comment">// ¿Y ahora qué?</span><br>
+                <span class="comment">En los últimos años me he dedicado a la docencia... (tu texto de futuro)</span>`;
+
+            const initSequence = [
+                { t: 'p', c: 'Last login: ' + new Date().toLocaleString() },
+                { t: 'p', c: '<span class="highlight">Minerva Rodríguez-Cabrejas | Candidata Máster en Investigación en Práctica Artística</span>' },
+                { t: 'p', c: '<span class="comment">// Bienvenid@, ¿qué quieres ver?</span>' },
+                { t: 'p', c: '<span class="comment">// Escribe: "bio", "proyectos", "futuro" o "contacto".</span>' }
+            ];
+
+            const delay = ms => new Promise(res => setTimeout(res, ms));
+
+            async function addLine(text, tag = 'p', speed = 50) {
+                let processedText = text.replace(/(?<!https?:)\/\/(.*?)($|<br>)/g, '<span class="comment">//$1</span>$2');
+                const el = document.createElement(tag);
+                el.className = 'line';
+                content.appendChild(el);
+
+                if (processedText.includes('<a') || processedText.includes('<img') || processedText.includes('<iframe')) {
+                    el.innerHTML = processedText;
+                    content.scrollTop = content.scrollHeight;
+                } else {
+                    const cursor = document.createElement('span');
+                    cursor.className = 'cursor';
+                    el.appendChild(cursor);
+
+                    let i = 0;
+                    while (i < processedText.length) {
+                        if (processedText[i] === '<') {
+                            let end = processedText.indexOf('>', i);
+                            cursor.insertAdjacentHTML('beforebegin', processedText.substring(i, end + 1));
+                            i = end + 1;
+                        } else {
+                            cursor.insertAdjacentText('beforebegin', processedText[i]);
+                            i++;
+                        }
+                        await delay(speed);
+                        content.scrollTop = content.scrollHeight;
+                    }
+                    cursor.remove();
+                }
+            }
+
+            async function showLoading(taskName = "CARGANDO ARCHIVO") {
+                const loaderId = 'loader-' + Date.now();
+                const el = document.createElement('div');
+                el.innerHTML = `<div class="progress-text">${taskName}... <span id="${loaderId}-pc">0%</span></div>
+                                <div class="progress-bar-container"><div id="${loaderId}" class="progress-bar-fill"></div></div>`;
+                content.appendChild(el);
+                for (let i = 0; i <= 100; i += 10) {
+                    const fill = document.getElementById(loaderId);
+                    const pc = document.getElementById(loaderId + '-pc');
+                    if(fill) fill.style.width = i + '%';
+                    if(pc) pc.innerText = i + '%';
+                    await delay(50);
+                    content.scrollTop = content.scrollHeight;
+                }
+                await delay(500);
+                el.remove();
+            }
+
+            async function askNext(customText) {
+                await delay(500);
+                const msg = customText || '¿Qué quieres ver ahora? (proyectos, bio, futuro, contacto)';
+                await addLine(`<span class="system-ask">? ${msg}</span>`);
+            }
+
+            async function init() {
+                content.innerHTML = '';
+                for (let line of initSequence) {
+                    await addLine(line.c, line.t, 40);
+                    await delay(500);
+                }
+                inputContainer.style.display = 'flex';
+                userInput.focus();
+            }
+
+            userInput.addEventListener('keydown', async (e) => {
+                if (e.key === 'Enter') {
+                    const val = userInput.value.toLowerCase().trim();
+                    if (!val) return;
+                    userInput.value = '';
+                    await addLine(`<span class="prompt">user@minerva:~$</span> <span class="command-text">${val}</span>`);
+
+                    let outputText = '';
+                    if (val === 'proyectos') {
+                        outputText = 'Archivos encontrados: <br>' + Object.keys(proyectos).map(k => `> <span class="highlight">${k}</span>`).join('<br>');
+                    } else if (val === 'bio') {
+                        outputText = `<span class="comment">// Biografía</span><br><br>
+    ░░▒░░▒░░░▒░░░░▒░░░▒░░░░░░░░░░░<br>
+    ░▒▒░░▒▒░░░▒▒▒▓██▓▒▒▒░░░░░░░░░░<br>
+    ▒▒▒░░▒▒░▒▓█▓▓▒▒▒▒▓█▓▓▒▒░░░░░░░<br>
+    ▒▒▒░░▒▒▒██▒▒░░░░░░▒▓▓▓▒▒▒░░░░░<br>
+    ▒▒▒░░▒▒▓█▒▒▓▓▓▒▒▒▓▓▓▓▓▓▓▒▓▒░▒░<br>
+    ▒▒▒░░▒▓██▒▓▓███▓█▓▓██████▒▓▒▒░<br>
+    ▒▒▒░▒▒▓██░░░░▓▒░░▓▓░░░▓██▓▓▓▒░<br>
+    ▒▒▒░▒▓██▓▒▒▓█▓▒▓▓▓█▓▒▒▓███▒▓▓▒<br>
+    ▒▒▒░▒▓▓██▒▒▒▓█▓▒▒▒▒█▓░▒▓██▓▓▓▒<br>
+    ▒▒▒░▒▓▓▓██▓▒░░▒░▒░▒▒▒▒▓▓▒▒▒█▓▓<br>
+    ▒▒▒▒▓▓▓▓▒▓██▓▒░░░▒▒▓▓█▓░░▒▒█▓▓<br>
+    ▒▒▒▒▓▓▓▓▓▓█████▓▓▓▓▓█▓▒░▒▓▓██▓<br>
+    ▒▒██▓▒▓█▓▓▓█████▓▓▓▓█▒▒▒▓▓▓██▓<br>
+    ▒███▓▓▒▓█▓▓▒▓████▓▒▒▓▓▓▓▓▓▓▓▓▒<br>
+    ▓████▓▓▒▒██▓▒▓█████▓▒▓▓▒▓▒▒▓▒░<br><br>
+    👋 ¡Hola! Soy Minerva... (biografía completa)`;
+                    } else if (val === 'contacto') {
+                        outputText = `// Datos de contacto <br><br>
+                        Email: <a href="mailto:rodriguecabrejasminerva@gmail.com" class="highlight">rodriguecabrejasminerva@gmail.com</a><br>
+                        LinkedIn: <a href="https://www.linkedin.com/in/minerva-rodr%C3%ADguez-cabrejas/" target="_blank" class="highlight">Perfil Profesional</a>`;
+                    } else if (val === 'futuro') {
+                        outputText = futuro;
+                    } else if (proyectos[val]) {
+                        const p = proyectos[val];
+                        await showLoading(`ACCEDIENDO A: ${val.toUpperCase()}`);
+                        let media = '';
+                        if (p.img) media += `<img src="${p.img}">`;
+                        if (p.video) media += p.video;
+                        outputText = `<div class="project-card"><h2 style="color:#fff">${p.t}</h2><p class="comment">${p.d}</p>${media}</div>`;
+                    } else {
+                        outputText = `Comando no reconocido: <span style="color:red">${val}</span>.`;
+                    }
+
+                    await addLine(outputText);
+                    await askNext(val === 'proyectos' ? '¿Qué proyecto quieres ver?' : null);
+                }
+            });
+
+            document.addEventListener('click', () => userInput.focus());
+            window.onload = init;
+        </script>
+</body>
+</html>
